@@ -91,7 +91,7 @@ function renderApp() {
   killCharts();
   document.getElementById('app').innerHTML = `
     <header class="header">
-      <a class="logo-img-wrap" href="#"><img class="logo-img" src="icons/icon.png" alt="M&M.finanças"></a>
+      <a class="logo-img-wrap" href="#"><img class="logo-img" src="https://res.cloudinary.com/doo0fzoef/image/upload/v1779056931/icon_ghjanc.png" alt="M&M.finanças"></a>
       <span class="badge">${S.year}</span>
     </header>
 
@@ -654,7 +654,6 @@ window.FC = {
     await addEntry('empresas',{responsavel:resp,descricao:desc,valor:val});
   }
 };
-
 
 // ── INIT ──────────────────────────────────────────────────────────────
 renderApp();
