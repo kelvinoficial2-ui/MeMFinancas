@@ -477,17 +477,28 @@ body::after {
 .card-person {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  min-width: 0;
+}
+
+.card-person > div {
+  min-width: 0;
+  flex: 1;
 }
 
 .card-avatar {
-  width: 62px;
-  height: 62px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
   border: 2px solid rgba(255,255,255,0.12);
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+/* valor menor dentro do card-person para caber no mobile */
+.card-person .card-val {
+  font-size: 18px;
 }
 
 /* avatar pequeno na lista de lançamentos */
@@ -523,4 +534,12 @@ body::after {
   object-fit: contain;
   filter: drop-shadow(0 0 8px rgba(255, 200, 0, 0.35))
           drop-shadow(0 0 8px rgba(255, 45, 120, 0.35));
+}
+
+/* card-person em telas pequenas — avatar menor, fonte menor */
+@media (max-width: 580px) {
+  .card-avatar { width: 44px; height: 44px; }
+  .card-person .card-val { font-size: 15px; }
+  .card-person { gap: 9px; }
+  .card { padding: 14px 14px; }
 }
