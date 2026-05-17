@@ -1,23 +1,14 @@
-// ════════════════════════════════════════════════════════════════════
-//  FIREBASE IMPORTS
-// ════════════════════════════════════════════════════════════════════
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js';
 import {
-  getFirestore, collection, addDoc, deleteDoc,
+  getFirestore, collection, addDoc,
   doc, query, orderBy, onSnapshot
 } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
 
 import { FIREBASE_CONFIG } from './config.js';
 
-// ════════════════════════════════════════════════════════════════════
-//  FIREBASE INIT
-// ════════════════════════════════════════════════════════════════════
 const fbApp = initializeApp(FIREBASE_CONFIG);
 const db    = getFirestore(fbApp);
 
-// ════════════════════════════════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════════════════════════════════
 const S = {
   tab:    'despesas',
   year:   new Date().getFullYear(),
@@ -27,16 +18,14 @@ const S = {
   subs:   {}
 };
 
-const MONTHS   = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho',
+const MONTHS   = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MONTHS_S = ['JAN','FEV','MAR','ABR','MAI','JUN',
                   'JUL','AGO','SET','OUT','NOV','DEZ'];
-const NOW_M    = new Date().getMonth() + 1;
-const NOW_Y    = new Date().getFullYear();
+const NOW_M = new Date().getMonth() + 1;
+const NOW_Y = new Date().getFullYear();
 
-// ════════════════════════════════════════════════════════════════════
-//  UTILS
-// ════════════════════════════════════════════════════════════════════
+// ── UTILS ────────────────────────────────────────────────────────────
 const mkey = (y, m) => `${y}-${m}`;
 
 const R$ = v => 'R$\u00a0' + Number(v || 0).toLocaleString('pt-BR', {
@@ -62,79 +51,61 @@ function toast(msg, err = false) {
   t._t = setTimeout(() => { t.className = 'toast'; }, 3200);
 }
 
-// ════════════════════════════════════════════════════════════════════
-//  FIRESTORE — sem autenticacao, caminho direto
-//  despesas/{ano-mes}/entries/{id}
-//  receitas/{ano-mes}/entries/{id}
-// ════════════════════════════════════════════════════════════════════
+// ── FIRESTORE ────────────────────────────────────────────────────────
 function subMonth(type, month) {
   const key = `${type}_${S.year}_${month}`;
   if (S.subs[key]) return;
-
-  const colRef = collection(db, type, mkey(S.year, month), 'entries');
-  const q = query(colRef, orderBy('timestamp', 'desc'));
-
+  const q = query(
+    collection(db, type, mkey(S.year, month), 'entries'),
+    orderBy('timestamp', 'desc')
+  );
   S.subs[key] = onSnapshot(q, snap => {
     S.data[type][mkey(S.year, month)] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     scheduleUpdate();
-  }, e => console.error('Snapshot error:', e));
-}
-
-function unsubAll() {
-  Object.values(S.subs).forEach(fn => fn && fn());
-  S.subs = {};
+  }, e => console.error(e));
 }
 
 async function addEntry(type, payload) {
   try {
-    const colRef = collection(db, type, mkey(S.year, S.month), 'entries');
-    await addDoc(colRef, { ...payload, timestamp: new Date() });
-    toast('Lancamento adicionado!');
+    await addDoc(
+      collection(db, type, mkey(S.year, S.month), 'entries'),
+      { ...payload, timestamp: new Date() }
+    );
+    toast('✓ Lançamento adicionado!');
   } catch (e) {
-    console.error(e);
-    toast('Erro ao salvar: ' + e.message, true);
+    toast('Erro: ' + e.message, true);
   }
 }
 
-async function removeEntry(type, id) {
-  try {
-    const ref = doc(db, type, mkey(S.year, S.month), 'entries', id);
-    await deleteDoc(ref);
-    toast('Removido!');
-  } catch (e) {
-    toast('Erro ao remover!', true);
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════
-//  DEBOUNCED UPDATE
-// ════════════════════════════════════════════════════════════════════
+// ── DEBOUNCE ─────────────────────────────────────────────────────────
 let _ut = null;
 function scheduleUpdate() {
   clearTimeout(_ut);
   _ut = setTimeout(updateContent, 40);
 }
 
-// ════════════════════════════════════════════════════════════════════
-//  RENDER
-// ════════════════════════════════════════════════════════════════════
+// ── RENDER ───────────────────────────────────────────────────────────
 function renderApp() {
   killCharts();
   document.getElementById('app').innerHTML = `
     <header class="header">
       <span class="logo">M&amp;M<em>.</em>finan&ccedil;as</span>
-      <nav class="nav">
-        ${['despesas','receitas','gerencial'].map(t => `
-          <button class="nav-btn${S.tab===t?' active':''}" data-tab="${t}"
-                  onclick="FC.setTab('${t}')">
-            ${t[0].toUpperCase()+t.slice(1)}
-          </button>`).join('')}
-      </nav>
-      <div class="hd-end">
-        <span class="badge">${S.year}</span>
-      </div>
+      <span class="badge">${S.year}</span>
     </header>
+
     <main class="main" id="mc"></main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn${S.tab==='despesas'?' active':''}" data-tab="despesas" onclick="FC.setTab('despesas')">
+        <span class="nav-icon">💸</span>Despesas
+      </button>
+      <button class="nav-btn${S.tab==='receitas'?' active':''}" data-tab="receitas" onclick="FC.setTab('receitas')">
+        <span class="nav-icon">💰</span>Receitas
+      </button>
+      <button class="nav-btn${S.tab==='gerencial'?' active':''}" data-tab="gerencial" onclick="FC.setTab('gerencial')">
+        <span class="nav-icon">📊</span>Gerencial
+      </button>
+    </nav>
   `;
   updateContent();
 }
@@ -159,19 +130,16 @@ function updateContent() {
   afterRender();
 }
 
-// ════════════════════════════════════════════════════════════════════
-//  HTML BUILDERS
-// ════════════════════════════════════════════════════════════════════
+// ── HTML BUILDERS ────────────────────────────────────────────────────
 function monthSelectorHTML(type) {
   const label = type === 'despesas' ? 'Despesas' : 'Receitas';
   const desc  = type === 'despesas'
-    ? 'Selecione o mes para gerenciar suas despesas'
-    : 'Selecione o mes para gerenciar suas receitas';
+    ? 'Selecione o mês para gerenciar suas despesas'
+    : 'Selecione o mês para gerenciar suas receitas';
 
   const btns = MONTHS_S.map((m, i) => {
     const mn      = i + 1;
-    const key     = mkey(S.year, mn);
-    const entries = (S.data[type] || {})[key] || [];
+    const entries = (S.data[type] || {})[mkey(S.year, mn)] || [];
     const isCurr  = mn === NOW_M && S.year === NOW_Y;
     return `<button class="m-btn${isCurr?' current':''} ${entries.length?'has-data':''}"
                     onclick="FC.selectMonth(${mn})">${m}</button>`;
@@ -184,34 +152,31 @@ function monthSelectorHTML(type) {
         <div class="ph-desc">${desc}</div>
       </div>
     </div>
-    <div class="months-grid">${btns}</div>
-  `;
+    <div class="months-grid">${btns}</div>`;
 }
 
 function despesasMesHTML() {
   subMonth('despesas', S.month);
-  const key     = mkey(S.year, S.month);
-  const entries = S.data.despesas[key] || [];
+  const entries = S.data.despesas[mkey(S.year, S.month)] || [];
   const mn      = MONTHS[S.month - 1];
   const mayE = entries.filter(e => e.responsavel === 'MAYARA');
   const manE = entries.filter(e => e.responsavel === 'MANUELA');
-  const totM = mayE.reduce((s, e) => s + +e.valor, 0);
-  const totN = manE.reduce((s, e) => s + +e.valor, 0);
+  const totM = mayE.reduce((s,e) => s + +e.valor, 0);
+  const totN = manE.reduce((s,e) => s + +e.valor, 0);
   const tot  = totM + totN;
-  const pM   = tot > 0 ? Math.round(totM / tot * 100) : 0;
-  const pN   = tot > 0 ? Math.round(totN / tot * 100) : 0;
+  const pM   = tot > 0 ? Math.round(totM/tot*100) : 0;
+  const pN   = tot > 0 ? Math.round(totN/tot*100) : 0;
 
   const listHTML = entries.length === 0
     ? `<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">Nenhuma despesa cadastrada.<br>Adicione suas despesas →</div></div>`
     : entries.map(e => `
         <div class="entry">
-          <span class="e-badge eb-${e.responsavel === 'MAYARA' ? 'mayara' : 'manuela'}">${esc(e.responsavel)}</span>
+          <span class="e-badge eb-${e.responsavel==='MAYARA'?'mayara':'manuela'}">${esc(e.responsavel)}</span>
           <div class="e-info">
             <div class="e-desc">${esc(e.descricao)}</div>
             <div class="e-date">${fmtTs(e.timestamp)}</div>
           </div>
           <span class="e-val ev-e">-${R$(e.valor)}</span>
-          <button class="del-btn" onclick="FC.del('despesas','${e.id}')">✕</button>
         </div>`).join('');
 
   return `
@@ -225,12 +190,12 @@ function despesasMesHTML() {
       <div class="card c-purple">
         <div class="card-lbl">👤 Mayara</div>
         <div class="card-val cv-purple">${R$(totM)}</div>
-        <div class="card-sub">${mayE.length} lancamento(s)</div>
+        <div class="card-sub">${mayE.length} lançamento(s)</div>
       </div>
       <div class="card c-cyan">
         <div class="card-lbl">👤 Manuela</div>
         <div class="card-val cv-cyan">${R$(totN)}</div>
-        <div class="card-sub">${manE.length} lancamento(s)</div>
+        <div class="card-sub">${manE.length} lançamento(s)</div>
       </div>
       <div class="donut-card">
         <div class="donut-wrap"><canvas id="donut-c"></canvas></div>
@@ -253,7 +218,7 @@ function despesasMesHTML() {
         <div class="panel-h">➕ Nova Despesa</div>
         <div class="form-bd">
           <div class="fg">
-            <label class="fl">Responsavel</label>
+            <label class="fl">Responsável</label>
             <select class="fc" id="d-resp">
               <option value="">— Selecione —</option>
               <option value="MAYARA">MAYARA</option>
@@ -261,8 +226,8 @@ function despesasMesHTML() {
             </select>
           </div>
           <div class="fg">
-            <label class="fl">Descricao</label>
-            <input class="fc" id="d-desc" type="text" placeholder="Ex: Mercado, Farmacia, Roupa...">
+            <label class="fl">Descrição</label>
+            <input class="fc" id="d-desc" type="text" placeholder="Ex: Mercado, Farmácia, Roupa...">
           </div>
           <div class="fg">
             <label class="fl">Valor (R$)</label>
@@ -276,28 +241,26 @@ function despesasMesHTML() {
 
 function receitasMesHTML() {
   subMonth('receitas', S.month);
-  const key     = mkey(S.year, S.month);
-  const entries = S.data.receitas[key] || [];
+  const entries = S.data.receitas[mkey(S.year, S.month)] || [];
   const mn      = MONTHS[S.month - 1];
   const recE = entries.filter(e => e.responsavel === 'RECANTO DA OZILIA');
   const driE = entries.filter(e => e.responsavel === 'DRINKS');
-  const totR = recE.reduce((s, e) => s + +e.valor, 0);
-  const totD = driE.reduce((s, e) => s + +e.valor, 0);
+  const totR = recE.reduce((s,e) => s + +e.valor, 0);
+  const totD = driE.reduce((s,e) => s + +e.valor, 0);
   const tot  = totR + totD;
-  const pR   = tot > 0 ? Math.round(totR / tot * 100) : 0;
-  const pD   = tot > 0 ? Math.round(totD / tot * 100) : 0;
+  const pR   = tot > 0 ? Math.round(totR/tot*100) : 0;
+  const pD   = tot > 0 ? Math.round(totD/tot*100) : 0;
 
   const listHTML = entries.length === 0
     ? `<div class="empty"><div class="empty-ico">💰</div><div class="empty-txt">Nenhuma receita cadastrada.<br>Adicione suas receitas →</div></div>`
     : entries.map(e => `
         <div class="entry">
-          <span class="e-badge eb-${e.responsavel === 'DRINKS' ? 'drinks' : 'recanto'}">${esc(e.responsavel)}</span>
+          <span class="e-badge eb-${e.responsavel==='DRINKS'?'drinks':'recanto'}">${esc(e.responsavel)}</span>
           <div class="e-info">
             <div class="e-desc">${esc(e.descricao)}</div>
             <div class="e-date">${fmtTs(e.timestamp)}</div>
           </div>
           <span class="e-val ev-r">+${R$(e.valor)}</span>
-          <button class="del-btn" onclick="FC.del('receitas','${e.id}')">✕</button>
         </div>`).join('');
 
   return `
@@ -311,12 +274,12 @@ function receitasMesHTML() {
       <div class="card c-green">
         <div class="card-lbl">🏠 Recanto da Ozilia</div>
         <div class="card-val cv-green">${R$(totR)}</div>
-        <div class="card-sub">${recE.length} lancamento(s)</div>
+        <div class="card-sub">${recE.length} lançamento(s)</div>
       </div>
       <div class="card c-yellow">
         <div class="card-lbl">🍹 Drinks</div>
         <div class="card-val cv-yellow">${R$(totD)}</div>
-        <div class="card-sub">${driE.length} lancamento(s)</div>
+        <div class="card-sub">${driE.length} lançamento(s)</div>
       </div>
       <div class="donut-card">
         <div class="donut-wrap"><canvas id="donut-c"></canvas></div>
@@ -339,7 +302,7 @@ function receitasMesHTML() {
         <div class="panel-h">➕ Nova Receita</div>
         <div class="form-bd">
           <div class="fg">
-            <label class="fl">Responsavel</label>
+            <label class="fl">Responsável</label>
             <select class="fc" id="r-resp">
               <option value="">— Selecione —</option>
               <option value="RECANTO DA OZILIA">RECANTO DA OZILIA</option>
@@ -347,8 +310,8 @@ function receitasMesHTML() {
             </select>
           </div>
           <div class="fg">
-            <label class="fl">Descricao</label>
-            <input class="fc" id="r-desc" type="text" placeholder="Ex: Venda, Servico, Aluguel...">
+            <label class="fl">Descrição</label>
+            <input class="fc" id="r-desc" type="text" placeholder="Ex: Venda, Serviço, Aluguel...">
           </div>
           <div class="fg">
             <label class="fl">Valor (R$)</label>
@@ -368,20 +331,19 @@ function gerencialHTML() {
   let totRec = 0, totDesp = 0;
   const months = MONTHS.map((name, i) => {
     const key   = mkey(S.year, i + 1);
-    const recs  = (S.data.receitas[key] || []).reduce((s, e) => s + +e.valor, 0);
-    const desps = (S.data.despesas[key] || []).reduce((s, e) => s + +e.valor, 0);
-    totRec  += recs;
-    totDesp += desps;
+    const recs  = (S.data.receitas[key]||[]).reduce((s,e)=>s+ +e.valor,0);
+    const desps = (S.data.despesas[key]||[]).reduce((s,e)=>s+ +e.valor,0);
+    totRec += recs; totDesp += desps;
     return { name, recs, desps, saldo: recs - desps };
   });
   const saldo = totRec - totDesp;
   const rows = months.map(m => {
-    const empty = m.recs === 0 && m.desps === 0;
+    const empty = m.recs===0 && m.desps===0;
     return `<tr>
       <td>${m.name}</td>
-      <td class="${m.recs > 0 ? 'tg' : 'tm'}">${m.recs > 0 ? '+' + R$(m.recs) : '—'}</td>
-      <td class="${m.desps > 0 ? 'tr' : 'tm'}">${m.desps > 0 ? '-' + R$(m.desps) : '—'}</td>
-      <td class="${empty ? 'tm' : m.saldo >= 0 ? 'tg' : 'tr'}">${empty ? '—' : (m.saldo >= 0 ? '+' : '') + R$(m.saldo)}</td>
+      <td class="${m.recs>0?'tg':'tm'}">${m.recs>0?'+'+R$(m.recs):'—'}</td>
+      <td class="${m.desps>0?'tr':'tm'}">${m.desps>0?'-'+R$(m.desps):'—'}</td>
+      <td class="${empty?'tm':m.saldo>=0?'tg':'tr'}">${empty?'—':(m.saldo>=0?'+':'')+R$(m.saldo)}</td>
     </tr>`;
   }).join('');
 
@@ -389,47 +351,45 @@ function gerencialHTML() {
     <div class="ph">
       <div>
         <div class="ph-title">Gerencial</div>
-        <div class="ph-desc">Visao consolidada — ${S.year}</div>
+        <div class="ph-desc">Visão consolidada — ${S.year}</div>
       </div>
     </div>
     <div class="row row-3" style="margin-bottom:18px">
       <div class="card c-green"><div class="card-lbl">↑ Total Receitas</div><div class="card-val cv-green">${R$(totRec)}</div></div>
       <div class="card c-red"><div class="card-lbl">↓ Total Despesas</div><div class="card-val cv-red">${R$(totDesp)}</div></div>
-      <div class="card ${saldo >= 0 ? 'c-green' : 'c-red'}"><div class="card-lbl">⊖ Saldo Anual</div><div class="card-val ${saldo >= 0 ? 'cv-green' : 'cv-red'}">${saldo < 0 ? '-' : ''}${R$(Math.abs(saldo))}</div></div>
+      <div class="card ${saldo>=0?'c-green':'c-red'}"><div class="card-lbl">⊖ Saldo Anual</div><div class="card-val ${saldo>=0?'cv-green':'cv-red'}">${saldo<0?'-':''}${R$(Math.abs(saldo))}</div></div>
     </div>
     <div class="cpanel">
-      <div class="cpanel-h">📊 Receitas VS Despesas — Mes a Mes</div>
+      <div class="cpanel-h">📊 Receitas VS Despesas — Mês a Mês</div>
       <canvas id="bar-c" height="75"></canvas>
     </div>
     <div class="cpanel">
       <div class="cpanel-h">📋 Resumo Mensal</div>
       <table class="m-table">
-        <thead><tr><th>Mes</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead>
+        <thead><tr><th>Mês</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
 }
 
-// ════════════════════════════════════════════════════════════════════
-//  CHARTS
-// ════════════════════════════════════════════════════════════════════
+// ── CHARTS ───────────────────────────────────────────────────────────
 function afterRender() {
   const donut = document.getElementById('donut-c');
   if (donut) {
     let data, colors, labels;
     if (S.tab === 'despesas') {
-      const e = S.data.despesas[mkey(S.year, S.month)] || [];
-      data   = [e.filter(x=>x.responsavel==='MAYARA').reduce((s,x)=>s+ +x.valor,0), e.filter(x=>x.responsavel==='MANUELA').reduce((s,x)=>s+ +x.valor,0)];
-      colors = ['#c77dff','#48cae4']; labels = ['Mayara','Manuela'];
+      const e = S.data.despesas[mkey(S.year,S.month)]||[];
+      data=[e.filter(x=>x.responsavel==='MAYARA').reduce((s,x)=>s+ +x.valor,0),e.filter(x=>x.responsavel==='MANUELA').reduce((s,x)=>s+ +x.valor,0)];
+      colors=['#c77dff','#48cae4']; labels=['Mayara','Manuela'];
     } else {
-      const e = S.data.receitas[mkey(S.year, S.month)] || [];
-      data   = [e.filter(x=>x.responsavel==='RECANTO DA OZILIA').reduce((s,x)=>s+ +x.valor,0), e.filter(x=>x.responsavel==='DRINKS').reduce((s,x)=>s+ +x.valor,0)];
-      colors = ['#00e676','#ffa502']; labels = ['Recanto','Drinks'];
+      const e = S.data.receitas[mkey(S.year,S.month)]||[];
+      data=[e.filter(x=>x.responsavel==='RECANTO DA OZILIA').reduce((s,x)=>s+ +x.valor,0),e.filter(x=>x.responsavel==='DRINKS').reduce((s,x)=>s+ +x.valor,0)];
+      colors=['#00e676','#ffa502']; labels=['Recanto','Drinks'];
     }
-    S.charts.donut = new Chart(donut, {
-      type: 'doughnut',
-      data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: '#141424', borderWidth: 4 }] },
-      options: { responsive: false, animation: { duration: 600 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + R$(ctx.raw) } } }, cutout: '68%' }
+    S.charts.donut = new Chart(donut,{
+      type:'doughnut',
+      data:{labels,datasets:[{data,backgroundColor:colors,borderColor:'#141424',borderWidth:4}]},
+      options:{responsive:false,animation:{duration:600},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+R$(ctx.raw)}}},cutout:'68%'}
     });
   }
 
@@ -437,18 +397,18 @@ function afterRender() {
   if (bar) {
     const recArr  = MONTHS.map((_,i)=>(S.data.receitas[mkey(S.year,i+1)]||[]).reduce((s,e)=>s+ +e.valor,0));
     const despArr = MONTHS.map((_,i)=>(S.data.despesas[mkey(S.year,i+1)]||[]).reduce((s,e)=>s+ +e.valor,0));
-    S.charts.bar = new Chart(bar, {
-      type: 'bar',
-      data: { labels: MONTHS_S, datasets: [
-        { label: 'Receita', data: recArr,  backgroundColor: 'rgba(0,230,118,0.72)', borderColor: '#00e676', borderWidth: 1, borderRadius: 6, borderSkipped: false },
-        { label: 'Despesa', data: despArr, backgroundColor: 'rgba(255,71,87,0.72)',  borderColor: '#ff4757', borderWidth: 1, borderRadius: 6, borderSkipped: false }
+    S.charts.bar = new Chart(bar,{
+      type:'bar',
+      data:{labels:MONTHS_S,datasets:[
+        {label:'Receita',data:recArr,backgroundColor:'rgba(0,230,118,0.72)',borderColor:'#00e676',borderWidth:1,borderRadius:6,borderSkipped:false},
+        {label:'Despesa',data:despArr,backgroundColor:'rgba(255,71,87,0.72)',borderColor:'#ff4757',borderWidth:1,borderRadius:6,borderSkipped:false}
       ]},
-      options: {
-        responsive: true, animation: { duration: 700 },
-        plugins: { legend: { labels: { color: 'rgba(240,240,255,0.45)', font: { size: 12 } } }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${R$(ctx.raw)}` } } },
-        scales: {
-          x: { ticks: { color: 'rgba(240,240,255,0.32)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-          y: { ticks: { color: 'rgba(240,240,255,0.32)', callback: v => v >= 1000 ? 'R$'+(v/1000).toFixed(1)+'k' : 'R$'+v }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      options:{
+        responsive:true,animation:{duration:700},
+        plugins:{legend:{labels:{color:'rgba(240,240,255,0.45)',font:{size:12}}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${R$(ctx.raw)}`}}},
+        scales:{
+          x:{ticks:{color:'rgba(240,240,255,0.32)',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{ticks:{color:'rgba(240,240,255,0.32)',callback:v=>v>=1000?'R$'+(v/1000).toFixed(1)+'k':'R$'+v},grid:{color:'rgba(255,255,255,0.04)'}}
         }
       }
     });
@@ -456,51 +416,42 @@ function afterRender() {
 }
 
 function killCharts() {
-  if (S.charts.donut) { S.charts.donut.destroy(); S.charts.donut = null; }
-  if (S.charts.bar)   { S.charts.bar.destroy();   S.charts.bar   = null; }
+  if (S.charts.donut){S.charts.donut.destroy();S.charts.donut=null;}
+  if (S.charts.bar)  {S.charts.bar.destroy();  S.charts.bar=null;}
 }
 
-// ════════════════════════════════════════════════════════════════════
-//  GLOBAL CONTROLLER
-// ════════════════════════════════════════════════════════════════════
+// ── CONTROLLER ───────────────────────────────────────────────────────
 window.FC = {
-  setTab: tab => { S.tab = tab; S.month = null; updateContent(); },
-  selectMonth: m => { S.month = m; updateContent(); },
-  goBack: () => { S.month = null; updateContent(); },
+  setTab: tab => { S.tab=tab; S.month=null; updateContent(); },
+  selectMonth: m => { S.month=m; updateContent(); },
+  goBack: () => { S.month=null; updateContent(); },
 
   addDespesa: async () => {
-    const resp = document.getElementById('d-resp')?.value;
-    const desc = document.getElementById('d-desc')?.value?.trim();
-    const val  = parseFloat(document.getElementById('d-val')?.value || '0');
-    if (!resp)    { toast('Selecione o responsavel!', true); return; }
-    if (!desc)    { toast('Informe a descricao!',     true); return; }
-    if (!(val>0)) { toast('Valor invalido!',          true); return; }
-    await addEntry('despesas', { responsavel: resp, descricao: desc, valor: val });
+    const resp=document.getElementById('d-resp')?.value;
+    const desc=document.getElementById('d-desc')?.value?.trim();
+    const val=parseFloat(document.getElementById('d-val')?.value||'0');
+    if(!resp){toast('Selecione o responsável!',true);return;}
+    if(!desc){toast('Informe a descrição!',true);return;}
+    if(!(val>0)){toast('Valor inválido!',true);return;}
+    await addEntry('despesas',{responsavel:resp,descricao:desc,valor:val});
   },
 
   addReceita: async () => {
-    const resp = document.getElementById('r-resp')?.value;
-    const desc = document.getElementById('r-desc')?.value?.trim();
-    const val  = parseFloat(document.getElementById('r-val')?.value || '0');
-    if (!resp)    { toast('Selecione o responsavel!', true); return; }
-    if (!desc)    { toast('Informe a descricao!',     true); return; }
-    if (!(val>0)) { toast('Valor invalido!',          true); return; }
-    await addEntry('receitas', { responsavel: resp, descricao: desc, valor: val });
-  },
-
-  del: async (type, id) => {
-    if (!confirm('Remover este lancamento?')) return;
-    await removeEntry(type, id);
+    const resp=document.getElementById('r-resp')?.value;
+    const desc=document.getElementById('r-desc')?.value?.trim();
+    const val=parseFloat(document.getElementById('r-val')?.value||'0');
+    if(!resp){toast('Selecione o responsável!',true);return;}
+    if(!desc){toast('Informe a descrição!',true);return;}
+    if(!(val>0)){toast('Valor inválido!',true);return;}
+    await addEntry('receitas',{responsavel:resp,descricao:desc,valor:val});
   }
 };
 
-// ════════════════════════════════════════════════════════════════════
-//  INIT — abre direto, sem login
-// ════════════════════════════════════════════════════════════════════
+// ── INIT ─────────────────────────────────────────────────────────────
 renderApp();
 subMonth('despesas', NOW_M);
 subMonth('receitas', NOW_M);
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
