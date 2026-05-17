@@ -26,6 +26,9 @@
   --purple2: rgba(199,125,255,0.10);
   --cyan:    #48cae4;
   --cyan2:   rgba(72,202,228,0.10);
+  --pink:    #ff2d78;
+  --pink2:   rgba(255,45,120,0.12);
+  --cv-pink: #ff2d78;
 
   --text:    #f0f0ff;
   --text2:   rgba(240,240,255,0.55);
@@ -410,4 +413,114 @@ body::after {
   .cgrid { grid-template-columns: 1fr; }
   .nav-btn { font-size: 9px; }
   .nav-btn .nav-icon { font-size: 20px; }
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  GERENCIAL SELECTOR                                         */
+/* ═══════════════════════════════════════════════════════════ */
+.ger-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.ger-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 20px;
+  border-radius: var(--r);
+  border: 2px solid var(--border);
+  background: var(--card);
+  color: var(--text2);
+  font-family: var(--ff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+.ger-opt:hover {
+  border-color: var(--border2);
+  background: var(--card2);
+  transform: translateY(-2px);
+}
+.ger-opt.active {
+  border-color: var(--green);
+  background: var(--green2);
+  color: var(--text);
+  box-shadow: 0 0 24px rgba(0,230,118,0.12);
+}
+
+.ger-icon  { font-size: 36px; line-height: 1; }
+.ger-label { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+.ger-desc  { font-size: 11px; color: var(--text3); line-height: 1.4; }
+.ger-opt.active .ger-desc { color: var(--text2); }
+
+@media (max-width: 580px) {
+  .ger-selector { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ger-opt { padding: 20px 12px; }
+  .ger-icon { font-size: 28px; }
+  .ger-label { font-size: 15px; }
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  CORES DOS ESTABELECIMENTOS                                 */
+/* ═══════════════════════════════════════════════════════════ */
+.card.c-pink::before   { background: var(--pink); }
+.cv-pink               { color: var(--pink); }
+.eb-ozilia-drinks      { background: var(--pink2); color: var(--pink); }
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  AVATARES NOS CARDS E LISTA                                 */
+/* ═══════════════════════════════════════════════════════════ */
+.card-person {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.card-avatar {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.12);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+/* avatar pequeno na lista de lançamentos */
+.e-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255,255,255,0.1);
+}
+
+/* logo empresa — contain para não cortar */
+.card-logo {
+  object-fit: contain;
+  background: rgba(255,255,255,0.06);
+  padding: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  LOGO IMAGEM NO HEADER                                      */
+/* ═══════════════════════════════════════════════════════════ */
+.logo-img-wrap {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logo-img {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(255, 200, 0, 0.35))
+          drop-shadow(0 0 8px rgba(255, 45, 120, 0.35));
 }
