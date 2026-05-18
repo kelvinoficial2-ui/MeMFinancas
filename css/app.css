@@ -396,7 +396,7 @@ body::after {
 @media (max-width: 900px) {
   .months-grid { grid-template-columns: repeat(3, 1fr); }
   .row-c { grid-template-columns: 1fr 1fr; }
-  .donut-card { display: none; }
+  .row-c .donut-card { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 24px; }
   .cgrid { grid-template-columns: 1fr; }
   .row-4 { grid-template-columns: repeat(2, 1fr); }
   .row-3 { grid-template-columns: 1fr 1fr; }
@@ -532,8 +532,7 @@ body::after {
   height: 38px;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(0 0 8px rgba(255, 200, 0, 0.35))
-          drop-shadow(0 0 8px rgba(255, 45, 120, 0.35));
+
 }
 
 /* card-person em telas pequenas — avatar menor, fonte menor */
